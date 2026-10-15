@@ -1,0 +1,16 @@
+{
+  "name": "com.lumivale.lumi-core",
+  "version": "0.1.0",
+  "displayName": "Lumi Core",
+  "description": "Reusable Lumivale Studio foundations: bootstrap, scene flow, Input System contexts, uGUI navigation, validated preferences, native mixer audio and versioned gameplay persistence.",
+  "unity": "6000.3",
+  "unityRelease": "13f1",
+  "author": {
+    "name": "Lumivale Studio"
+  },
+  "keywords": ["lumivale", "bootstrap", "scene-flow", "input", "ugui", "settings", "audio", "persistence"],
+  "dependencies": {
+    "com.unity.inputsystem": "1.19.0",
+    "com.unity.ugui": "2.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Lumivale.Core.Persistence.Tests.Editor",
+  "rootNamespace": "Lumivale.Core.Tests.Persistence",
+  "references": ["Lumivale.Core.Bootstrap", "Lumivale.Core.Persistence"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "allowUnsafeCode": false
+}

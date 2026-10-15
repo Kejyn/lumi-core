@@ -1,0 +1,8 @@
+{
+  "name": "Lumivale.Core.Audio.Tests.PlayMode",
+  "rootNamespace": "Lumivale.Core.Audio.Tests",
+  "references": ["Lumivale.Core.Bootstrap", "Lumivale.Core.Audio"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "allowUnsafeCode": false
+}

@@ -1,0 +1,8 @@
+{
+  "name": "Lumivale.Core.Tests.PlayMode",
+  "rootNamespace": "Lumivale.Core.Tests",
+  "references": ["Lumivale.Core.Bootstrap", "Lumivale.Core.Input", "Lumivale.Core.UI", "Unity.InputSystem", "Unity.InputSystem.TestFramework", "UnityEngine.UI"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "allowUnsafeCode": false
+}

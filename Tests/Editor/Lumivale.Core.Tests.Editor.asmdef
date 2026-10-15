@@ -1,0 +1,9 @@
+{
+  "name": "Lumivale.Core.Tests.Editor",
+  "rootNamespace": "Lumivale.Core.Tests",
+  "references": ["Lumivale.Core.Bootstrap", "Lumivale.Core.SceneFlow", "Lumivale.Core.Settings"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "allowUnsafeCode": false
+}

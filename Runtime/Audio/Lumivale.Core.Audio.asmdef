@@ -1,0 +1,7 @@
+{
+  "name": "Lumivale.Core.Audio",
+  "rootNamespace": "Lumivale.Core.Audio",
+  "references": ["Lumivale.Core.Bootstrap"],
+  "autoReferenced": true,
+  "allowUnsafeCode": false
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Lumivale.Core.Persistence",
+  "rootNamespace": "Lumivale.Core.Persistence",
+  "references": ["Lumivale.Core.Bootstrap"],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "autoReferenced": true,
+  "noEngineReferences": false
+}

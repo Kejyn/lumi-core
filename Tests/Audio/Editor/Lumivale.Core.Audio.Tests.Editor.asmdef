@@ -1,0 +1,9 @@
+{
+  "name": "Lumivale.Core.Audio.Tests.Editor",
+  "rootNamespace": "Lumivale.Core.Audio.Tests",
+  "references": ["Lumivale.Core.Bootstrap", "Lumivale.Core.Audio"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false,
+  "allowUnsafeCode": false
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Lumivale.Core.UI",
+  "rootNamespace": "Lumivale.Core.UI",
+  "references": [
+    "Lumivale.Core.Bootstrap",
+    "Lumivale.Core.Input",
+    "Unity.InputSystem",
+    "UnityEngine.UI"
+  ],
+  "autoReferenced": true,
+  "allowUnsafeCode": false
+}

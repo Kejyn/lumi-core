@@ -1,0 +1,25 @@
+# Lumi Core contributor instructions
+
+- Target Unity 6000.3.13f1 and the C# version supported by that Editor.
+- Keep reusable runtime code and service tests in this package. Project composition, scenes, visual assets, input actions and gameplay models belong to consuming projects.
+- Preserve the seven-module architecture and public contracts. Introduce a dependency or API change only for a concrete requirement and document its compatibility impact.
+- Bootstrap is independent of other Core modules. Scene Flow and Input reference Bootstrap; UI references Bootstrap and Input. Avoid dependency cycles.
+- Settings and Audio each reference Bootstrap and never each other. A consuming project synchronizes their values before playback.
+- Persistence references Bootstrap only. Games own DTOs, model identifiers, versions, semantic validation and migration decisions; preferences remain in Settings/PlayerPrefs.
+- Capture and serialize on the constructing Unity main thread. Disk workers receive immutable strings and perform native I/O only. Await shutdown before controlled process or Play-session exit.
+- Validate slot IDs, isolate game directories and preserve exclusive directory ownership. Preserve incompatible/corrupt files and never promote uncommitted temporary files. Do not claim universal atomicity.
+- Keep preference storage separate from gameplay saves. Use configurable PlayerPrefs keys, versioned documents, validated snapshots and explicit graphics application/save.
+- Audio owns its mixer parameters and runtime sources. Use unscaled fades, bounded SFX allocation and deterministic shutdown; sound assets belong to the consuming project.
+- Runtime dependencies are Unity Input System 1.19.0 and uGUI 2.0.0. Review compatibility before changing those versions.
+- Input owns a runtime clone of the project's InputActionAsset. Projects configure actions/maps; Core must not impose gameplay actions or controllers.
+- UI owns navigation and lifecycle; projects own Canvas, EventSystem, style and scene composition. Time scaling for pause is opt-in.
+- InputSystemUiBridge exclusively owns its six configured UI actions and one InputSystemUIInputModule while bound. Dispose subscriptions and registrations on disable/destruction.
+- Preserve deterministic lifecycle ordering, rollback, reverse shutdown and exclusive scene loading.
+- Invoke Unity APIs on the Unity main thread. Never block it waiting for asynchronous work.
+- Keep unit tests independent of lumi-start. Bootstrap/Scene Flow/Settings use Tests/Editor; Input/UI use Tests/Runtime and the official InputTestFixture. Keep scene integration tests in their consuming project.
+- A consuming project must install Unity Test Framework and list com.lumivale.lumi-core in manifest testables to run package tests.
+- Test fixtures own isolated temporary roots, preferences and virtual devices. Never delete real user saves or call PlayerPrefs.DeleteAll to repair a test.
+- Use native Unity APIs for scene/asset changes and validate compilation and references in the Editor. Do not hand-edit scene or prefab YAML.
+- Keep source assets and their .meta files together. Exclude caches, build outputs, local tooling state and credentials from version control.
+- Document public APIs, lifecycle/cancellation limits and compatibility changes in the relevant README and CHANGELOG. Use English for C# comments.
+- Preserve third-party notices and author identities. Audit the complete Git history before publication; history rewriting requires explicit authorization. Keep repositories private unless their owner authorizes another visibility.
