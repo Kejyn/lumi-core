@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - Optional rendering settings
+
+- Added portable rendering preferences, strict additive V1 validation, complete snapshot equality and optional backend capabilities.
+- Preserved the existing display backend contract while supporting full rendering application and explicit native resource release.
+- Kept URP implementation and quality preset policy in consuming projects; no new package dependency or module.
+
 ## [Unreleased] - Input presentation and repository maintenance
 
 - Report meaningful keyboard/mouse and gamepad activity through instance-owned device-family state and notifications.

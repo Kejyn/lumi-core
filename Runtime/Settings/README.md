@@ -40,7 +40,8 @@ appliquer les préférences chargées, avant de lancer le gameplay.
 | `Capabilities` | Lit les choix graphiques actuels sans mutation. |
 | `Update(values)` | Copie et valide les valeurs, notifie les changements effectifs ; retourne le snapshot commis par cet appel. |
 | `ResetDefaults()` | Restaure les défauts actuellement valides en mémoire ; notification si changement. |
-| `ApplyGraphics()` | Revalide les choix selon les capacités actuelles puis applique résolution, mode et qualité. |
+| `ApplyGraphics()` | Revalide les choix puis applique le snapshot complet via le backend optionnel de rendu, ou résolution/mode/qualité via le backend historique. |
+| `RenderingCapabilities` | Capacités de rendu du backend injecté ; `None` avec un backend d'affichage seul. |
 | `Save()` | Écrit et flush explicitement le document JSON des valeurs courantes. |
 | `LastLoadStatus`, `LastLoadMessage` | Distingue absence, chargement, réparation, document invalide, version inconnue et erreur de lecture. |
 
@@ -92,6 +93,51 @@ Cette V0.1 ne choisit pas de fréquence de rafraîchissement. `Screen.SetResolut
 utilise la politique Unity ; les changements de taille se terminent en fin de frame.
 Les contraintes du Game View ou de la plateforme peuvent empêcher d'observer la
 taille souhaitée dans l'Editor. Aucun Render Pipeline n'est imposé.
+
+## Extension de rendu optionnelle
+
+`SettingsValues` conserve le même document et ajoute des champs portables :
+
+| Champ | Valeurs validées |
+| --- | --- |
+| `FrameRateLimit` | `-1` (Unlimited), `30`, `60`, `120` ; défaut sûr `60`. |
+| `VSync`, `PostProcessing` | Booléens. |
+| `RenderScale` | Nombre fini entre `0.5` et `1`. |
+| `AntiAliasing` | `Off`, `FXAA`, `SMAA`, `MSAA2x`, `MSAA4x`, `MSAA8x`, selon les capacités exposées. |
+| `ShadowQuality` | `Off`, `Low`, `Medium`, `High`. |
+| `ShadowDistance` | Nombre fini entre `0` et `200`. |
+| `TextureQuality`, `LodQuality` | `Low`, `Medium`, `High`. |
+| `AnisotropicFiltering` | Valeur définie de l'enum Unity correspondante. |
+
+Ces valeurs décrivent les préférences, pas une garantie de prise en charge par
+tous les pipelines et plateformes. Les champs absents d'un ancien document V1
+reprennent les défauts du jeu ; `false`, `0` et `-1` explicites sont conservés lorsque
+valides. Les bornes finies sont clampées, les valeurs non finies et enums inconnues
+reprennent le défaut validé. La validation JSON stricte couvre aussi ces nouveaux
+champs et rejette les nombres fournis comme texte ou les booléens fournis comme nombres.
+
+Un jeu peut injecter `IRenderingSettingsBackend`, extension additive de
+`IGraphicsSettingsBackend`. L'ancien contrat et les consommateurs existants restent
+valides. Ce backend expose `RenderingCapabilities`, normalise les choix avec
+`ValidateRendering`, puis applique résolution et rendu ensemble via `Apply(SettingsValues)`.
+Sa validation ne doit ni modifier le moteur ni allouer des ressources persistantes ;
+`fallback` peut être null lors de la validation des défauts. Le service lui passe
+des copies et n'accepte de sa réponse que les champs de rendu, revalidés aux bornes
+portables. Un backend doit normaliser les options non disponibles et l'interface
+du jeu doit n'afficher que les capacités réellement exposées.
+
+`Release()` restaure les paramètres natifs et libère les ressources possédées lors
+de l'arrêt, même avec un token annulé. Il doit être idempotent et permettre une
+réutilisation du même backend après réinitialisation du service. Le service libère
+ses observers et son état même si cette restauration lève une exception ; l'erreur
+est transmise à l'appelant. Les intégrations URP doivent posséder leurs clones runtime
+et restaurer les références aux assets, sans modifier les assets partagés sur disque.
+
+Core n'ajoute aucune dépendance URP ou Windows. Les presets Low/Medium/High,
+leur comparaison avec Custom, les choix propres à chaque jeu et les règles VSync/FPS
+appartiennent au backend/composition du projet. `QualityName` conserve son sens :
+nom d'un vrai profil Unity. `Custom` n'est pas un profil Unity artificiel.
+`SettingsValues.ContentEquals` compare tous les champs pour détecter un brouillon modifié.
 
 ## Stockage et mises à jour
 

@@ -70,6 +70,11 @@ namespace Lumivale.Core.Settings
         /// <summary>Refreshes platform choices without changing preferences or the display.</summary>
         public GraphicsCapabilities Capabilities => graphics.GetCapabilities();
 
+        /// <summary>Rendering features exposed by the injected backend; unavailable for display-only backends.</summary>
+        public RenderingCapabilities RenderingCapabilities =>
+            (graphics as IRenderingSettingsBackend)?.RenderingCapabilities ??
+            global::Lumivale.Core.Settings.RenderingCapabilities.None;
+
         /// <summary>Receives an independent snapshot after an effective in-memory preference change.</summary>
         public event Action<SettingsValues> Changed;
         public event Action<Exception> ObserverFailed;
@@ -94,12 +99,14 @@ namespace Lumivale.Core.Settings
 
         public Task ShutdownAsync(CancellationToken cancellationToken)
         {
-            // Explicit Save owns persistence. Shutdown releases observers even with a cancelled token.
+            // Explicit Save owns persistence. Clear observers/state before native restoration
+            // can invoke callbacks; cleanup still runs with a cancelled token.
             IsInitialized = false;
             current = null;
             defaults = null;
             Changed = null;
             ObserverFailed = null;
+            (graphics as IRenderingSettingsBackend)?.Release();
             return Task.CompletedTask;
         }
 
@@ -139,8 +146,11 @@ namespace Lumivale.Core.Settings
             GraphicsCapabilities capabilities = graphics.GetCapabilities();
             SettingsValues newDefaults = Validate(configuration.Defaults, null, capabilities);
             SettingsValues validated = Validate(current, newDefaults, capabilities);
-            graphics.Apply(new DisplayResolution(validated.Width, validated.Height),
-                validated.DisplayMode, validated.QualityName);
+            if (graphics is IRenderingSettingsBackend rendering)
+                rendering.Apply(validated.Clone());
+            else
+                graphics.Apply(new DisplayResolution(validated.Width, validated.Height),
+                    validated.DisplayMode, validated.QualityName);
             defaults = newDefaults;
             SetCurrent(validated);
         }
@@ -262,7 +272,63 @@ namespace Lumivale.Core.Settings
             result.MusicVolume = ValidateVolume(result.MusicVolume, fallback?.MusicVolume ?? 1f);
             result.SfxVolume = ValidateVolume(result.SfxVolume, fallback?.SfxVolume ?? 1f);
             result.LanguageCode = configuration.ValidateLanguage(result.LanguageCode);
+            ValidateRenderingValues(result, fallback);
+            if (graphics is IRenderingSettingsBackend rendering)
+            {
+                SettingsValues supported = rendering.ValidateRendering(result.Clone(), fallback?.Clone());
+                if (supported == null)
+                    throw new InvalidOperationException("The rendering backend returned a missing preference snapshot.");
+                // A backend owns rendering capabilities, not display/audio/language validation.
+                // Copy only rendering fields, then enforce the portable bounds once more.
+                result.FrameRateLimit = supported.FrameRateLimit;
+                result.VSync = supported.VSync;
+                result.RenderScale = supported.RenderScale;
+                result.AntiAliasing = supported.AntiAliasing;
+                result.PostProcessing = supported.PostProcessing;
+                result.ShadowQuality = supported.ShadowQuality;
+                result.ShadowDistance = supported.ShadowDistance;
+                result.TextureQuality = supported.TextureQuality;
+                result.AnisotropicFiltering = supported.AnisotropicFiltering;
+                result.LodQuality = supported.LodQuality;
+                ValidateRenderingValues(result, fallback);
+            }
             return result;
+        }
+
+        private static void ValidateRenderingValues(SettingsValues values, SettingsValues fallback)
+        {
+            if (!IsFrameRateLimit(values.FrameRateLimit))
+                values.FrameRateLimit = fallback != null && IsFrameRateLimit(fallback.FrameRateLimit) ?
+                    fallback.FrameRateLimit : 60;
+            values.RenderScale = ValidateRange(values.RenderScale, fallback?.RenderScale ?? 1f, 1f, 0.5f, 1f);
+            values.ShadowDistance = ValidateRange(values.ShadowDistance, fallback?.ShadowDistance ?? 35f,
+                35f, 0f, 200f);
+            values.AntiAliasing = ValidateEnum(values.AntiAliasing,
+                fallback?.AntiAliasing ?? GraphicsAntiAliasing.Off, GraphicsAntiAliasing.Off);
+            values.ShadowQuality = ValidateEnum(values.ShadowQuality,
+                fallback?.ShadowQuality ?? GraphicsShadowQuality.Medium, GraphicsShadowQuality.Medium);
+            values.TextureQuality = ValidateEnum(values.TextureQuality,
+                fallback?.TextureQuality ?? GraphicsQuality.High, GraphicsQuality.High);
+            values.AnisotropicFiltering = ValidateEnum(values.AnisotropicFiltering,
+                fallback?.AnisotropicFiltering ?? UnityEngine.AnisotropicFiltering.Enable,
+                UnityEngine.AnisotropicFiltering.Enable);
+            values.LodQuality = ValidateEnum(values.LodQuality,
+                fallback?.LodQuality ?? GraphicsQuality.High, GraphicsQuality.High);
+        }
+
+        private static bool IsFrameRateLimit(int value) => value == -1 || value == 30 || value == 60 || value == 120;
+
+        private static float ValidateRange(float value, float fallback, float safeDefault, float minimum, float maximum)
+        {
+            if (float.IsNaN(value) || float.IsInfinity(value)) value = fallback;
+            if (float.IsNaN(value) || float.IsInfinity(value)) value = safeDefault;
+            return Mathf.Clamp(value, minimum, maximum);
+        }
+
+        private static T ValidateEnum<T>(T value, T fallback, T safeDefault) where T : struct
+        {
+            return Enum.IsDefined(typeof(T), value) ? value :
+                Enum.IsDefined(typeof(T), fallback) ? fallback : safeDefault;
         }
 
         private static bool HasRootValuesObject(string json)
@@ -329,14 +395,18 @@ namespace Lumivale.Core.Settings
                     value++;
                     while (value < json.Length && char.IsWhiteSpace(json[value])) value++;
                     bool integer = header ? name == "schemaVersion" :
-                        name == "Width" || name == "Height" || name == "DisplayMode";
-                    bool number = !header && (name == "MasterVolume" || name == "MusicVolume" || name == "SfxVolume");
+                        name == "Width" || name == "Height" || name == "DisplayMode" || name == "FrameRateLimit" ||
+                        name == "AntiAliasing" || name == "ShadowQuality" || name == "TextureQuality" ||
+                        name == "AnisotropicFiltering" || name == "LodQuality";
+                    bool number = !header && (name == "MasterVolume" || name == "MusicVolume" || name == "SfxVolume" ||
+                        name == "RenderScale" || name == "ShadowDistance");
+                    bool boolean = !header && (name == "VSync" || name == "PostProcessing");
                     bool text = !header && (name == "QualityName" || name == "LanguageCode");
-                    if (!integer && !number && !text) continue;
+                    if (!integer && !number && !text && !boolean) continue;
                     if (!seen.Add(name))
                         throw new ArgumentException($"Preference field '{name}' appears more than once.");
                     bool valid = value < json.Length && (text ? json[value] == '"' || IsNullToken(json, value) :
-                        IsNumberToken(json, value, integer));
+                        boolean ? IsBooleanToken(json, value) : IsNumberToken(json, value, integer));
                     if (!valid) throw new ArgumentException($"Preference field '{name}' has an incompatible JSON type.");
                 }
                 else if (character == '{' || character == '[') depth++;
@@ -352,6 +422,14 @@ namespace Lumivale.Core.Settings
         {
             return start + 4 <= json.Length && string.CompareOrdinal(json, start, "null", 0, 4) == 0 &&
                 IsValueBoundary(json, start + 4);
+        }
+
+        private static bool IsBooleanToken(string json, int start)
+        {
+            return (start + 4 <= json.Length && string.CompareOrdinal(json, start, "true", 0, 4) == 0 &&
+                IsValueBoundary(json, start + 4)) ||
+                (start + 5 <= json.Length && string.CompareOrdinal(json, start, "false", 0, 5) == 0 &&
+                IsValueBoundary(json, start + 5));
         }
 
         private static bool IsNumberToken(string json, int start, bool integerOnly)

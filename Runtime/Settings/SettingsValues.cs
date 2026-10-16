@@ -11,6 +11,16 @@ namespace Lumivale.Core.Settings
         public int Height;
         public FullScreenMode DisplayMode = FullScreenMode.Windowed;
         public string QualityName;
+        public int FrameRateLimit = 60;
+        public bool VSync = true;
+        public float RenderScale = 1f;
+        public GraphicsAntiAliasing AntiAliasing = GraphicsAntiAliasing.Off;
+        public bool PostProcessing = true;
+        public GraphicsShadowQuality ShadowQuality = GraphicsShadowQuality.Medium;
+        public float ShadowDistance = 35f;
+        public GraphicsQuality TextureQuality = GraphicsQuality.High;
+        public AnisotropicFiltering AnisotropicFiltering = AnisotropicFiltering.Enable;
+        public GraphicsQuality LodQuality = GraphicsQuality.High;
         public float MasterVolume = 1f;
         public float MusicVolume = 1f;
         public float SfxVolume = 1f;
@@ -21,12 +31,20 @@ namespace Lumivale.Core.Settings
             return (SettingsValues)MemberwiseClone();
         }
 
-        internal bool SameAs(SettingsValues other)
+        /// <summary>Compares the complete preference content without exposing service-owned state.</summary>
+        public bool ContentEquals(SettingsValues other)
         {
             return other != null && Width == other.Width && Height == other.Height &&
                 DisplayMode == other.DisplayMode && QualityName == other.QualityName &&
+                FrameRateLimit == other.FrameRateLimit && VSync == other.VSync &&
+                RenderScale.Equals(other.RenderScale) && AntiAliasing == other.AntiAliasing &&
+                PostProcessing == other.PostProcessing && ShadowQuality == other.ShadowQuality &&
+                ShadowDistance.Equals(other.ShadowDistance) && TextureQuality == other.TextureQuality &&
+                AnisotropicFiltering == other.AnisotropicFiltering && LodQuality == other.LodQuality &&
                 MasterVolume.Equals(other.MasterVolume) && MusicVolume.Equals(other.MusicVolume) &&
                 SfxVolume.Equals(other.SfxVolume) && LanguageCode == other.LanguageCode;
         }
+
+        internal bool SameAs(SettingsValues other) => ContentEquals(other);
     }
 }
